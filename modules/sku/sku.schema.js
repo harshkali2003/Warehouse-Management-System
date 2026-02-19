@@ -7,6 +7,7 @@ const skuSchema = new mongoose.Schema(
       unique: true,
       uppercase: true,
       trim: true,
+      immutable : true,
     },
     name: {
       type: String,
@@ -15,6 +16,12 @@ const skuSchema = new mongoose.Schema(
     },
     unit: {
       type: String,
+      enum: ["PCS", "KG", "LTR", "BOX"],
+      required: true,
+    },
+    category: {
+      type: String,
+      enum: ["GROCERY", "ELECTRONICS", "PHARMA"],
       required: true,
     },
     isPerishable: {
