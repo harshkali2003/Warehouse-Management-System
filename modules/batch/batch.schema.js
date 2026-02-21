@@ -23,4 +23,6 @@ const batchSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+batchSchema.index({skuId : 1} , {unique : true});
+
 module.exports = mongoose.model("Batch", batchSchema);

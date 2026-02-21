@@ -10,7 +10,6 @@ const warehouseSchema = new mongoose.Schema(
     warehouse_code: {
       type: String,
       required: true,
-      unique: true,
     },
     location: {
       type: {
@@ -35,6 +34,9 @@ const warehouseSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-warehouseSchema.index({location : "2dsphere"})
+warehouseSchema.index({warehouse_code : 1} , {unique : true});
+warehouseSchema.index({location : "2dsphere"});
+warehouseSchema.index({ isActive: 1 });
+warehouseSchema.index({ location: "2dsphere", isActive: 1 })
 
 module.exports = mongoose.model("Warehouse", warehouseSchema);

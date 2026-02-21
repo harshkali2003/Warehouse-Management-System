@@ -4,7 +4,6 @@ const skuSchema = new mongoose.Schema(
     skuCode: {
       type: String,
       required: true,
-      unique: true,
       uppercase: true,
       trim: true,
       immutable : true,
@@ -31,5 +30,7 @@ const skuSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+skuSchema.index({skuCode : 1} , {unique : true});
 
 module.exports = mongoose.model("Sku", skuSchema);
