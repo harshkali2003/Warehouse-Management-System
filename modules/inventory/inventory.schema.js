@@ -16,9 +16,16 @@ const inventorySchema = new mongoose.Schema(
       ref: "Bin",
       required: true,
     },
+    warehouse_id : {
+      type : mongoose.Schema.Types.ObjectId,
+      ref : "Warehouse",
+      required : true,
+    },
     quantity: {
       type: Number,
       required: true,
+      min : 1,
+      validate : Number.isInteger,
     },
     status: {
       type: String,
