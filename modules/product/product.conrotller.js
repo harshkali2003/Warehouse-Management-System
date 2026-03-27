@@ -61,7 +61,7 @@ exports.getAllProducts = async (req, resp, next) => {
     const products = await productSchema.find().skip(skip).limit(limit);
 
     if (products.length === 0) {
-      return res.status(200).json({
+      return resp.status(200).json({
         success: true,
         message: "Products fetched successfully",
         data: [],
