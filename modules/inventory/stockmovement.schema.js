@@ -13,12 +13,10 @@ const stockMovement = new mongoose.Schema({
     fromBinId : {
         type : mongoose.Schema.Types.ObjectId,
         ref : "Bin",
-        required : true,
     },
     toBinId : {
         type : mongoose.Schema.Types.ObjectId,
         ref : "Bin",
-        required : true,
     },
     quantity : {
         type : Number,
@@ -26,7 +24,7 @@ const stockMovement = new mongoose.Schema({
     },
     movementType : {
         type : String,
-        enum : ["TRANSFER" , "INBOUND" , "OUTBOUND"],
+        enum : ["TRANSFER" , "INBOUND" , "OUTBOUND" , "RESEREVED" , "RELEASED"],
         required : true,
     },
     referenceId : {

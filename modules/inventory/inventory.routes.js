@@ -6,9 +6,9 @@ const RBC = require("../../shared/middleware/roleBased.middleware")
 
 const Inventory = require("./inventory.controller")
 
-router.post("/" , verifyToken , RBC("admin") , Inventory.createInventory)
+router.post("/inbound" , verifyToken , RBC("admin") , Inventory.createInventory)
 
-router.get("/" , verifyToken , RBC("admin" , "manager") , Inventory.getInventory)
+router.get("/stock" , verifyToken , RBC("admin" , "manager") , Inventory.getInventory)
 
 router.patch("/stocks/:id" , verifyToken , RBC("admin") , Inventory.updateInventory)
 
