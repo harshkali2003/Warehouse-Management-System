@@ -37,6 +37,6 @@ const stockMovement = new mongoose.Schema({
     note : {
         type : String,
     },
-})
+} , {timestamps : true})
 
 module.exports = mongoose.model("StockMovement" , stockMovement);

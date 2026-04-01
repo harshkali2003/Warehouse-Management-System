@@ -4,6 +4,10 @@ const StockMovement = require("./stockmovement.schema");
 const AppError = require("../../shared/utils/GlobalError");
 const { default: mongoose } = require("mongoose");
 const AvailableStock = require("../../shared/utils/inventory.utils");
+const {
+  increaseStock,
+  decreaseStock,
+} = require("../../shared/utils/StockHandeling.utils");
 
 exports.createInventory = async (req, resp, next) => {
   try {
@@ -35,15 +39,17 @@ exports.createInventory = async (req, resp, next) => {
       { upsert: true, new: true, runValidators: true },
     );
 
-    const [movement] = await StockMovement.create([{
-      productId,
-      batchId,
-      fromBinId: null,
-      toBinId: binId,
-      quantity: quantity,
-      movementType: "INBOUND",
-      note: "Stock has been added to Inventory",
-    }]);
+    const [movement] = await StockMovement.create([
+      {
+        productId,
+        batchId,
+        fromBinId: null,
+        toBinId: binId,
+        quantity: quantity,
+        movementType: "INBOUND",
+        note: "Stock has been added to Inventory",
+      },
+    ]);
 
     return resp.status(201).json({ message: "success", inventory, movement });
   } catch (err) {
@@ -107,25 +113,40 @@ exports.updateInventory = async (req, resp, next) => {
       return next(new AppError("Log in first", 401));
     }
 
-    const { type, productId, batchId, binId, quantity } = req.body;
+    const { type, productId, batchId, fromBinId, toBinId, quantity } = req.body;
 
-    if (!type || !productId || !batchId || !binId || quantity === undefined) {
+    if (!type || !productId || !batchId || quantity === undefined) {
       return next(new AppError("All fields are required", 400));
     }
 
     if (
+      (type === "INBOUND" && !toBinId) ||
+      (type === "OUTBOUND" && !fromBinId) ||
+      (type === "TRANSFER" && (!fromBinId || !toBinId))
+    ) {
+      return next(new AppError("Bin id is required according to type", 400));
+    }
+
+    if (
       !mongoose.Types.ObjectId.isValid(productId) ||
-      !mongoose.Types.ObjectId.isValid(batchId) ||
-      !mongoose.Types.ObjectId.isValid(binId)
+      !mongoose.Types.ObjectId.isValid(batchId)
     ) {
       return next(new AppError("Invalid Id", 400));
+    }
+
+    if (fromBinId && !mongoose.Types.ObjectId.isValid(fromBinId)) {
+      return next(new AppError("Invalid fromBinId", 400));
+    }
+
+    if (toBinId && !mongoose.Types.ObjectId.isValid(toBinId)) {
+      return next(new AppError("Invalid toBinId", 400));
     }
 
     if (typeof quantity !== "number" || quantity <= 0) {
       return next(new AppError("Quantity must be positive number", 400));
     }
 
-    const inventory = await Inventory.findOne({ productId, batchId, binId });
+    const inventory = await Inventory.findOne({ productId, batchId });
 
     if (!inventory) {
       return next(new AppError("No Inventory found", 404));
@@ -135,17 +156,13 @@ exports.updateInventory = async (req, resp, next) => {
 
     switch (type) {
       case "INBOUND":
-        inventory.quantity += quantity;
-        inventory.availableQuantity += quantity;
-
-        await inventory.save();
-
+        await increaseStock({inventory, quantity});
         [movement] = await StockMovement.create([
           {
             productId,
             batchId,
             fromBinId: null,
-            toBinId: binId,
+            toBinId: toBinId,
             quantity,
             movementType: "INBOUND",
             note: "Stock added",
@@ -155,24 +172,44 @@ exports.updateInventory = async (req, resp, next) => {
         break;
 
       case "OUTBOUND":
-        if (inventory.availableQuantity < quantity) {
-          return next(new AppError("Insufficient stock", 400));
-        }
-
-        inventory.quantity -= quantity;
-        inventory.availableQuantity -= quantity;
-
-        await inventory.save();
+        await decreaseStock({inventory, quantity});
 
         [movement] = await StockMovement.create([
           {
             productId,
             batchId,
-            fromBinId: binId,
+            fromBinId: fromBinId,
             toBinId: null,
             quantity,
             movementType: "OUTBOUND",
             note: "Stock removed",
+          },
+        ]);
+
+        break;
+
+      case "TRANSFER":
+        const toInventory = await Inventory.findOne({
+          productId,
+          batchId,
+          toBinId,
+        });
+        if (!toInventory) {
+          return next(new AppError("Destination inventory not found", 404));
+        }
+
+        await decreaseStock({inventory, quantity});
+        await increaseStock({toInventory, quantity});
+
+        [movement] = await StockMovement.create([
+          {
+            productId,
+            batchId,
+            fromBinId: fromBinId,
+            toBinId: toBinId,
+            quantity,
+            movementType: "TRANSFER",
+            note: "Stock transfered",
           },
         ]);
 
