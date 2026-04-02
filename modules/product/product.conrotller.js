@@ -21,7 +21,7 @@ exports.createProduct = async (req, resp, next) => {
       );
     }
 
-    const product = new productSchema.create({
+    const product = await productSchema.create({
       p_name: name,
       p_category: category,
       p_price: price,
