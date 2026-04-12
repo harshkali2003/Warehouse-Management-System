@@ -14,6 +14,7 @@ const Inventory = require("./modules/inventory/inventory.routes")
 const Product = require("./modules/product/product.routes")
 const Warehouse = require("./modules/warehouse/warehouse.routes")
 const Location = require("./modules/warehouse/location.routes")
+const Order = require("./modules/orders/order.routes")
 
 app.use(express.json());
 
@@ -25,6 +26,7 @@ app.use("/inventory" , Inventory)
 app.use("/product" , Product)
 app.use("/warehouse" , Warehouse)
 app.use("/location" , Location)
+app.use("/order" , Order)
 
 app.all("*" , (req , resp , next) => {
     return next(new AppError(`Invalid given route ${req.originalUrl}` , 404))
