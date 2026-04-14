@@ -1,174 +1,83 @@
-const mongoose = require("mongoose");
+const productService = require("./product.service");
 
-const productSchema = require("./product.shcema");
-const AppError = require("../../shared/utils/GlobalError");
-
-exports.createProduct = async (req, resp, next) => {
+// 🔹 Create Product
+exports.createProduct = async (req, res, next) => {
   try {
-    const user = req.user?.id;
-    if (!user) {
-      return next(new AppError("Log in first", 401));
-    }
-
-    const { name, category, price } = req.body;
-    if (!name || !category || !price) {
-      return next(new AppError("All fields are required", 400));
-    }
-
-    if (typeof price !== "number" || price < 0) {
-      return next(
-        new AppError("price can be only number and non-negative", 400),
-      );
-    }
-
-    const product = await productSchema.create({
-      p_name: name,
-      p_category: category,
-      p_price: price,
-      createdBy: req.user?.id,
+    const product = await productService.createProductService({
+      userId: req.user?.id,
+      body: req.body,
     });
 
-    return resp.status(201).json({ message: "success", data: product });
-  } catch (err) {
-    next(err);
-  }
-};
-
-exports.getAllProducts = async (req, resp, next) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    const filter = {};
-
-    if (req.query.category) {
-      filter.category = req.query.category;
-    }
-
-    if (req.query.minPrice || req.query.maxPrice) {
-      filter.price = {};
-      if (req.query.minPrice) filter.price.$gte = Number(req.query.minPrice);
-      if (req.query.maxPrice) filter.price.$lte = Number(req.query.maxPrice);
-    }
-
-    if (req.query.serach) {
-      filter.name = { $regex: req.query.serach, $options: "i" };
-    }
-
-    const total = await productSchema.countDocuments(filter);
-
-    const products = await productSchema.find().skip(skip).limit(limit);
-
-    if (products.length === 0) {
-      return resp.status(200).json({
-        success: true,
-        message: "Products fetched successfully",
-        data: [],
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-        },
-      });
-    }
-
-    return resp.status(200).json({
-      message: "success",
-      data: products,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPage: Math.ceil(total / limit),
-      },
+    return res.status(201).json({
+      success: true,
+      data: product,
     });
   } catch (err) {
     next(err);
   }
 };
 
-exports.getSingleProduct = async (req, resp, next) => {
+// 🔹 Get All Products
+exports.getAllProducts = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const result = await productService.getAllProductsService(req.query);
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return next(new AppError("Invalid product Id", 400));
-    }
-
-    const product = await productSchema.findById(id);
-    if (!product) {
-      return next(new AppError("No Product Details found", 404));
-    }
-
-    return resp.status(200).json({ message: "success", product });
+    return res.status(200).json({
+      success: true,
+      data: result.products,
+      pagination: result.pagination,
+    });
   } catch (err) {
     next(err);
   }
 };
 
-exports.editProduct = async (req, resp, next) => {
+// 🔹 Get Single Product
+exports.getSingleProduct = async (req, res, next) => {
   try {
-    const user = req.user?.id;
-    if (!user) {
-      return next(new AppError("Log in first", 401));
-    }
+    const product = await productService.getSingleProductService(
+      req.params.id
+    );
 
-    const {id} = req.params;
-    if(!mongoose.Types.ObjectId.isValid(id)){
-        return next(new AppError("Invalid product Id" , 400))
-    }
-
-    const {name , category , price} = req.body;
-    if(!name || !category || price === undefined){
-        return next(new AppError("All fields are required" , 400))
-    }
-
-    if(typeof(price) !== "number" || price < 0){
-        return next(new AppError("Invalid price" , 400))
-    }
-
-    const updatedData = {name , category , price};
-
-    const product = await productSchema.findByIdAndUpdate(
-        id,
-        {$set : updatedData},
-        {new : true , runValidators : true}
-    )
-
-    if(!product){
-        return next(new AppError("No product found" , 404))
-    }
-
-    return resp.status(200).json({message : "success" , data : product})
+    return res.status(200).json({
+      success: true,
+      data: product,
+    });
   } catch (err) {
     next(err);
   }
 };
 
-exports.deleteProduct = async (req, resp, next) => {
+// 🔹 Update Product
+exports.editProduct = async (req, res, next) => {
   try {
-    const user = req.user?.id;
-    if (!user) {
-      return next(new AppError("Log in first", 401));
-    }
+    const product = await productService.updateProductService({
+      userId: req.user?.id,
+      id: req.params.id,
+      body: req.body,
+    });
 
-    const { id } = req.params;
+    return res.status(200).json({
+      success: true,
+      data: product,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return next(new AppError("Invalid product Id", 400));
-    }
+// 🔹 Delete Product
+exports.deleteProduct = async (req, res, next) => {
+  try {
+    const product = await productService.deleteProductService({
+      userId: req.user?.id,
+      id: req.params.id,
+    });
 
-    const product = await productSchema.findById(IDBTransaction);
-
-    if (!product) {
-      return next(new AppError("No product found", 404));
-    }
-
-    await product.deleteOne();
-
-    return resp.status(200).json({ message: "success", data: product });
+    return res.status(200).json({
+      success: true,
+      data: product,
+    });
   } catch (err) {
     next(err);
   }
